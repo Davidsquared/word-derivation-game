@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Word Derivation Game</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <h1>Word Derivation</h1>
+
+    <div id="login-area">
+        <h2>Welcome! Enter your name to play.</h2>
+        <input type="text" id="username-input" placeholder="Your Username" maxlength="15">
+        <br>
+        <button id="join-lobby-btn">Enter Lobby</button>
+    </div>
+
+    <div class="scoreboard">
+        <h3>Players:</h3>
+        <ul id="player-list"></ul>
+    </div>
+
+    <div id="lobby-area">
+        <p>Waiting for at least 2 players...</p>
+        <button id="start-btn">Start Game</button>
+    </div>
+
+    <div id="reaction-area">
+        <h2 id="reaction-text">Get Ready... Round <span id="round-number"></span></h2>
+        <p>First to click gets the first turn!</p>
+        <button id="reaction-btn">CLICK ME!</button>
+    </div>
+
+    <div id="game-area">
+        <h2>Round <span id="game-round-number">1</span> Target: <span id="target-word"></span></h2>
+        
+        <div id="timer-display">⏱ Time Left: <span id="time-left">15</span>s</div>
+        
+        <h3 id="turn-indicator" style="color: blue;">Waiting to start...</h3>
+        
+        <input type="text" id="word-input" placeholder="Type a derived word...">
+        <button id="submit-btn">Play Word</button>
+        <button id="genie-btn">🧞‍♂️ Use Genie</button>
+        
+        <p id="game-messages"></p>
+        
+        <h3>Used Words:</h3>
+        <p id="used-words-list"></p>
+
+        <div id="winner-area">
+            <h3 style="color: darkgoldenrod;">🏆 YOU WON! 🏆</h3>
+            <p>Choose the target word for the next round, OR auto-generate one:</p>
+            <input type="text" id="next-word-input" placeholder="Min 6 letters...">
+            <button id="submit-next-word-btn">Use My Word</button>
+            <br><br>
+            <button id="auto-next-word-btn" style="background-color: #eee;">Surprise Me (Auto-Generate)</button>
+        </div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const socket = io();
+
+        // Screen Areas
+        const loginArea = document.getElementById('login-area');
+        const lobbyArea = document.getElementById('lobby-area');
+        const reactionArea = document.getElementById('reaction-area');
+        const gameArea = document.getElementById('game-area');
+        const scoreboard = document.querySelector('.scoreboard');
+        const winnerArea = document.getElementById('winner-area');
+        
+        // Buttons & Inputs
+        const usernameInput = document.getElementById('username-input');
+        const joinLobbyBtn = document.getElementById('join-lobby-btn');
+        const startBtn = document.getElementById('start-btn');
+        const reactionBtn = document.getElementById('reaction-btn');
+        const submitBtn = document.getElementById('submit-btn');
+        const genieBtn = document.getElementById('genie-btn'); 
+        const wordInput = document.getElementById('word-input');
+        
+        // Displays
+        const reactionText = document.getElementById('reaction-text');
+        const messagesArea = document.getElementById('game-messages');
+        const playerList = document.getElementById('player-list');
+        const turnIndicator = document.getElementById('turn-indicator');
+        const usedWordsList = document.getElementById('used-words-list');
+        const nextWordInput = document.getElementById('next-word-input');
+        const submitNextWordBtn = document.getElementById('submit-next-word-btn');
+        const autoNextWordBtn = document.getElementById('auto-next-word-btn');
+        const timerDisplay = document.getElementById('timer-display');
+        const timeLeftSpan = document.getElementById('time-left');
+
+        let myId = null;
+        let allUsedWords = [];
+
+        socket.on('connect', () => { myId = socket.id; });
+
+        // --- NEW: Handle Joining ---
+        joinLobbyBtn.addEventListener('click', () => {
+            const username = usernameInput.value.trim();
+            if (username) {
+                socket.emit('join_lobby', username);
+            } else {
+                alert("Please enter a username!");
+            }
+        });
+
+        // When server confirms join, hide login and show lobby/scoreboard
+        socket.on('join_success', () => {
+            loginArea.style.display = 'none';
+            lobbyArea.style.display = 'block';
+            scoreboard.style.display = 'flex'; 
+        });
+
+        // Updated Roster to show custom Usernames
+        socket.on('roster_update', (players) => {
+            playerList.innerHTML = '';
+            players.forEach(p => {
+                const li = document.createElement('li');
+                li.innerText = `${p.username}: ${p.score} pts`;
+                if (p.hasGenie) li.innerHTML += `<span class="has-genie-icon">🧞‍♂️</span>`;
+                if (p.eliminated) li.className = 'eliminated';
+                if (p.id === myId) li.innerHTML += " <strong>(You)</strong>";
+                playerList.appendChild(li);
+            });
+        });
+
+        startBtn.addEventListener('click', () => { socket.emit('start_game'); });
+
+        socket.on('prepare_reaction', (data) => {
+            lobbyArea.style.display = 'none';
+            gameArea.style.display = 'none';
+            reactionArea.style.display = 'block';
+            timerDisplay.style.display = 'none'; 
+            document.getElementById('round-number').innerText = data.round;
+            reactionText.innerText = `Get Ready... Round ${data.round}`;
+            reactionBtn.style.display = 'none'; 
+        });
+
+        socket.on('reaction_go', () => {
+            reactionText.innerText = "GO!!!";
+            reactionBtn.style.display = 'inline-block';
+        });
+
+        reactionBtn.addEventListener('click', () => {
+            socket.emit('reaction_clicked');
+            reactionBtn.style.display = 'none'; 
+            reactionText.innerText = "Waiting for server...";
+        });
+
+        socket.on('game_started', (data) => {
+            reactionArea.style.display = 'none';
+            gameArea.style.display = 'block';
+            winnerArea.style.display = 'none'; 
+            timerDisplay.style.display = 'block'; 
+            
+            document.getElementById('target-word').innerText = data.targetWord;
+            document.getElementById('game-round-number').innerText = data.round;
+            
+            allUsedWords = [];
+            usedWordsList.innerText = "";
+            messagesArea.innerText = "";
+            nextWordInput.value = ''; 
+        });
+
+        socket.on('timer_update', (timeLeft) => {
+            timeLeftSpan.innerText = timeLeft;
+            if (timeLeft <= 5) {
+                timerDisplay.style.backgroundColor = "red";
+                timerDisplay.style.color = "white";
+            } else {
+                timerDisplay.style.backgroundColor = "#ffe6e6";
+                timerDisplay.style.color = "darkred";
+            }
+        });
+
+        // Turn update now uses custom username
+        socket.on('turn_update', (data) => {
+            if (data.currentPlayerId === myId) {
+                turnIndicator.innerText = "It's YOUR turn!";
+                wordInput.disabled = false;
+                submitBtn.disabled = false;
+                genieBtn.disabled = false; 
+                wordInput.focus();
+            } else {
+                turnIndicator.innerText = `Waiting for ${data.username}...`;
+                wordInput.disabled = true;
+                submitBtn.disabled = true;
+                genieBtn.disabled = true; 
+            }
+        });
+
+        wordInput.addEventListener("keypress", function(event) {
+            if (event.key === "Enter") {
+                event.preventDefault();
+                submitBtn.click();
+            }
+        });
+
+        submitBtn.addEventListener('click', () => {
+            const word = wordInput.value.trim().toUpperCase();
+            if (word) {
+                socket.emit('play_word', word);
+                wordInput.value = ''; 
+            }
+        });
+
+        genieBtn.addEventListener('click', () => { socket.emit('use_genie'); });
+
+        socket.on('play_result', (data) => {
+            messagesArea.innerText = data.message;
+            messagesArea.style.color = data.success ? 'green' : 'red';
+        });
+
+        socket.on('word_accepted', (data) => {
+            allUsedWords.push(data.word);
+            usedWordsList.innerText = allUsedWords.join(', ');
+        });
+
+        socket.on('word_rejected', (data) => {
+            messagesArea.innerText = data.message;
+            messagesArea.style.color = 'red';
+        });
+
+        // Game over now uses custom username
+        socket.on('game_over', (data) => {
+            wordInput.disabled = true;
+            submitBtn.disabled = true;
+            genieBtn.disabled = true;
+            timerDisplay.style.display = 'none'; 
+            
+            if (data.winner && data.winner.id === myId) {
+                turnIndicator.innerText = "GAME OVER!";
+                messagesArea.innerText = "You survived! Pick the next word or auto-generate.";
+                messagesArea.style.color = "gold";
+                winnerArea.style.display = 'block'; 
+            } else if (data.winner) {
+                turnIndicator.innerText = "GAME OVER!";
+                messagesArea.innerText = `${data.winner.username} won! Waiting for them...`;
+                messagesArea.style.color = "blue";
+            } else {
+                turnIndicator.innerText = "DRAW!";
+                messagesArea.innerText = "Everyone was eliminated!";
+            }
+        });
+
+        submitNextWordBtn.addEventListener('click', () => {
+            const nextWord = nextWordInput.value.trim().toUpperCase();
+            if (nextWord) socket.emit('set_next_word', nextWord);
+        });
+
+        autoNextWordBtn.addEventListener('click', () => { socket.emit('auto_next_word'); });
+    </script>
+</body>
+</html>

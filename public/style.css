@@ -1,0 +1,141 @@
+/* --- GLOBAL STYLES --- */
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #121212;
+    color: #ffffff;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    height: 100vh;
+}
+
+h1 {
+    color: #bb86fc;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    margin-top: 30px;
+}
+
+/* THE FIX: Explicitly hide these screens when the page loads */
+#lobby-area, #reaction-area, #game-area, #winner-area, .scoreboard { 
+    display: none; 
+}
+
+/* --- BUTTONS & INPUTS --- */
+button {
+    background-color: #bb86fc;
+    color: #000;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: transform 0.1s, background-color 0.2s;
+    margin: 5px;
+}
+
+button:hover { background-color: #9d4edd; color: white; }
+button:active { transform: scale(0.95); }
+button:disabled { background-color: #333; color: #666; cursor: not-allowed; transform: none; }
+
+input {
+    padding: 15px;
+    font-size: 18px;
+    border-radius: 8px;
+    border: 2px solid #333;
+    background-color: #1e1e1e;
+    color: white;
+    width: 250px;
+    text-align: center;
+    outline: none;
+    margin-bottom: 10px;
+}
+input:focus { border-color: #bb86fc; }
+
+/* --- SCREENS (Login, Lobby, Reaction, Game) --- */
+#login-area, #lobby-area, #reaction-area, #game-area {
+    background-color: #1e1e1e;
+    padding: 30px;
+    border-radius: 15px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    width: 90%;
+    max-width: 600px;
+    text-align: center;
+    margin-top: 20px;
+}
+
+/* --- SCOREBOARD --- */
+.scoreboard {
+    background-color: #1e1e1e;
+    border-radius: 10px;
+    padding: 15px 30px;
+    margin-bottom: 20px;
+    /* We will use JS to change display:none to display:flex */
+    justify-content: space-between;
+    align-items: center;
+    width: 90%;
+    max-width: 600px;
+}
+
+.scoreboard ul {
+    list-style: none;
+    padding: 0;
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+    justify-content: center;
+    width: 100%;
+}
+
+.scoreboard li {
+    background: #333;
+    padding: 8px 15px;
+    border-radius: 20px;
+    font-size: 14px;
+}
+.eliminated { text-decoration: line-through; opacity: 0.5; }
+.has-genie-icon { color: #9b59b6; margin-left: 5px; font-size: 16px; }
+
+/* --- SPECIFIC ELEMENTS --- */
+#target-word {
+    font-size: 32px;
+    color: #03dac6;
+    letter-spacing: 3px;
+    display: block;
+    margin: 15px 0;
+}
+
+#timer-display {
+    background: #cf6679;
+    color: white;
+    border: none;
+    border-radius: 20px;
+    padding: 10px 20px;
+    font-size: 20px;
+    display: inline-block;
+    margin-bottom: 20px;
+}
+
+#genie-btn { background-color: #03dac6; color: #000; }
+#genie-btn:hover { background-color: #018786; color: white; }
+#genie-btn:disabled { background-color: #333; color: #666; }
+
+#reaction-btn { 
+    font-size: 30px; 
+    padding: 30px 60px; 
+    background-color: #cf6679; 
+    color: white; 
+    border-radius: 50%; 
+}
+#reaction-btn:active { background-color: darkred; }
+
+#winner-area {
+    background: linear-gradient(135deg, #cfb53b, #ffdf00);
+    color: #000;
+    border: none;
+    padding: 20px;
+    border-radius: 10px;
+    margin-top: 20px;
+}
