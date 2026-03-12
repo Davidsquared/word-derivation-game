@@ -59,9 +59,16 @@ function hasHighestScore(playerId) {
 }
 
 function getGenieWord(target) {
-    for (let i = 0; i < wordList.length; i++) {
-        let word = wordList[i].toUpperCase();
-        if (word.length >= 3 && isValidDerivation(target, word) && !usedWords.includes(word)) {
+    // Instead of checking 300,000 words, let's just check 5,000 random ones
+    // This prevents the CPU spike that is likely killing your server
+    for (let i = 0; i < 5000; i++) {
+        let randomIndex = Math.floor(Math.random() * wordList.length);
+        let word = wordList[randomIndex].toUpperCase();
+        
+        if (word.length >= 3 && 
+            word.length < target.length && 
+            isValidDerivation(target, word) && 
+            !usedWords.includes(word)) {
             return word;
         }
     }
