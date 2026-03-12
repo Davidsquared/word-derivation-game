@@ -256,5 +256,6 @@ io.on('connection', (socket) => {
 
 // This tells the server: "Use the cloud's port, or use 3000 if I'm testing locally"
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
-server.listen(PORT, () => console.log(`🚀 Server running on http://localhost:${PORT}`));
+server.listen(PORT, () => {
+    console.log(`🚀 Server running on port ${PORT}`);
+});
