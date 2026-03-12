@@ -79,11 +79,14 @@ function startTurnTimer() {
 
         if (timeLeft <= 0) {
             clearInterval(turnTimerInterval); 
-            players[currentPlayerIndex].eliminated = true;
-            // Now uses the custom username
-            io.emit('word_rejected', { message: `⏰ Time's up! ${players[currentPlayerIndex].username} is eliminated.` });
-            io.emit('roster_update', players);
-            nextTurn(); 
+            
+            // THE FIX: Check if the player actually exists before eliminating them!
+            if (players[currentPlayerIndex]) {
+                players[currentPlayerIndex].eliminated = true;
+                io.emit('word_rejected', { message: `⏰ Time's up! ${players[currentPlayerIndex].username} is eliminated.` });
+                io.emit('roster_update', players);
+                nextTurn(); 
+            }
         }
     }, 1000); 
 }
@@ -243,13 +246,31 @@ io.on('connection', (socket) => {
 
     socket.on('disconnect', () => {
         console.log(`🔴 Player disconnected: ${socket.id}`);
+        
+        // Find exactly where the disconnected player was in the list
+        const disconnectedIndex = players.findIndex(p => p.id === socket.id);
+        if (disconnectedIndex === -1) return; // Safety escape
+
+        // Remove them from the active roster
         players = players.filter(p => p.id !== socket.id);
         io.emit('roster_update', players);
-        if (gameStarted && players.length > 0 && currentPlayerIndex >= players.length) {
-            currentPlayerIndex = 0;
-            nextTurn();
-        } else if (gameStarted && players.length > 0 && players[currentPlayerIndex] && players[currentPlayerIndex].id === socket.id) {
-            nextTurn(); 
+
+        // THE FIX: Handle the turn shifting perfectly
+        if (gameStarted) {
+            if (players.length === 0) {
+                // Everyone left! Stop the game and kill the ghost timer.
+                gameStarted = false;
+                clearInterval(turnTimerInterval);
+            } else if (disconnectedIndex === currentPlayerIndex) {
+                // The person whose turn it was disconnected. Pass the turn.
+                if (currentPlayerIndex >= players.length) {
+                    currentPlayerIndex = 0;
+                }
+                nextTurn();
+            } else if (disconnectedIndex < currentPlayerIndex) {
+                // Someone BEFORE the active player disconnected. Shift the index back!
+                currentPlayerIndex--;
+            }
         }
     });
 });
