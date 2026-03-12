@@ -244,6 +244,31 @@ io.on('connection', (socket) => {
         processWordPlay(socket, autoWord, true);
     });
 
+    // --- NEW: RESET GAME LOGIC ---
+    socket.on('reset_game', () => {
+        console.log(`🔄 Game reset triggered by ${socket.id}`);
+        
+        // 1. Stop any running timers
+        clearInterval(turnTimerInterval);
+        reactionPhaseActive = false;
+        
+        // 2. Reset the core game state
+        gameStarted = false;
+        currentRound = 1;
+        usedWords = [];
+        
+        // 3. Reset all players to zero
+        players.forEach(p => { 
+            p.score = 0; 
+            p.eliminated = false; 
+            p.hasGenie = true; 
+        });
+        
+        // 4. Update everyone's roster and send them to the lobby
+        io.emit('roster_update', players);
+        io.emit('game_reset'); 
+    });
+    
     socket.on('disconnect', () => {
         console.log(`🔴 Player disconnected: ${socket.id}`);
         

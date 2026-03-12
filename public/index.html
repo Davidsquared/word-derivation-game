@@ -49,6 +49,8 @@
         <h3>Used Words:</h3>
         <p id="used-words-list"></p>
 
+        <button id="reset-btn" style="background-color: #cf6679; color: white; margin-top: 30px;">🔄 Emergency Reset</button>
+
         <div id="winner-area">
             <h3 style="color: darkgoldenrod;">🏆 YOU WON! 🏆</h3>
             <p>Choose the target word for the next round, OR auto-generate one:</p>
@@ -79,6 +81,7 @@
         const submitBtn = document.getElementById('submit-btn');
         const genieBtn = document.getElementById('genie-btn'); 
         const wordInput = document.getElementById('word-input');
+        const resetBtn = document.getElementById('reset-btn');
         
         // Displays
         const reactionText = document.getElementById('reaction-text');
@@ -252,6 +255,32 @@
         });
 
         autoNextWordBtn.addEventListener('click', () => { socket.emit('auto_next_word'); });
+        // --- NEW: Handle Reset Button Click ---
+        resetBtn.addEventListener('click', () => {
+            // Add a confirmation pop-up so people don't click it by accident!
+            if (confirm("Are you sure you want to end the game and reset the lobby for EVERYONE?")) {
+                socket.emit('reset_game');
+            }
+        });
+
+        // --- NEW: Handle the Server's Reset Command ---
+        socket.on('game_reset', () => {
+            // Hide all game screens
+            gameArea.style.display = 'none';
+            reactionArea.style.display = 'none';
+            winnerArea.style.display = 'none';
+            timerDisplay.style.display = 'none';
+            
+            // Show the lobby again
+            lobbyArea.style.display = 'block';
+            
+            // Clear out old data visually
+            messagesArea.innerText = "Game was reset.";
+            messagesArea.style.color = "orange";
+            usedWordsList.innerText = "";
+            nextWordInput.value = '';
+            document.getElementById('target-word').innerText = "";
+        });
     </script>
 </body>
 </html>
